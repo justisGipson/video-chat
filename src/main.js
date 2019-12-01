@@ -2,7 +2,9 @@ import Vue from 'vue'
 import VueSocketIO from 'vue-socket.io'
 import VueResource from 'vue-resource'
 import store from './store'
+import router from './router'
 import App from './App.vue'
+import { url } from './utils/config'
 
 Vue.config.productionTip = false
 
@@ -18,6 +20,8 @@ Vue.use(new VueSocketIO({
 }))
 
 Vue.use(VueResource)
+
+Vue.config.productionTip = false
 
 new Vue({
   router,

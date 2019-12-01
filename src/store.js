@@ -11,10 +11,46 @@ export default new Vuex.store({
         rooms: [] // available rooms
     },
     mutations: {
-        // mutations per action (joinRoom, changeRoom, setRooms, leaveChat, changeStatus)
+        // mutations per action
+        joinRoom(state, {room, username}) {
+            state.room = room
+            state.username = username
+        },
+        changeRoom(state, room) {
+            state.room = room
+        },
+        setRooms(state, rooms) {
+            state.rooms = rooms
+        },
+        leaveChat(state) {
+            state.room = undefined
+            state.username = undefined
+        },
+        changeStatus(state) {
+            let nextStatus
+            if(state.status === STATUS_OPTIONS.available) nextStatus = STATUS_OPTIONS.absent
+            if(state.status === STATUS_OPTIONS.absent) nextStatus = STATUS_OPTIONS.unavailable
+            if(state.status === STATUS_OPTIONS.unavailable) nextStatus = STATUS_OPTIONS.available
+
+            state.status = nextStatus
+        }
     },
     actions: {
-        // define all actions that get triggered when - joinRoom, changeRoom, setRooms, leaveChat, changeStatus
-        
+        // all actions that get triggered 
+        joinRoom({ commit }, information) {
+            commit('joinRoom', information)
+        },
+        changeRoom({ commit }, room) {
+            commit('changeRoom', room)
+        },
+        setRooms({ commit }, rooms) {
+            commit('setRooms', rooms)
+        },
+        leaveChat({ commit }) {
+            commit('leaveChat')
+        },
+        changeStatus({ commit }) {
+            commit('changeStatus')
+        }
     }
 })

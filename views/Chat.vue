@@ -65,12 +65,40 @@ export default {
             const msg = isMe ? `${message}` : {username, message}
             this.messages.push({ msg, isMe })
         },
-        // REST OF LISTENERS: newUser, privateChat, privateMessage, leavePrivateRoom, leaveChat
+        newUser: function({ users, username }) {
+
+        },
+        privateChat: function({ username, to }) {
+
+        },
+        privateMessage: function({ privateMessage, to, from, room }) {
+
+        },
+        leavePrivateRoom: function({ privateMessage, from }) {
+
+        },
+        leaveChat: function({ users, username}) {
+
+        }
     },
     beforeCreate: function() {
         this.$socket.emit(WS_EVENTS.joinRoom, this.$store.state) // join room
     },
-    data: ,//chat data
+    // chat data
+    data: function(){
+        return {
+            room: this.$store.state.room,
+            users: [],
+            message: [],
+            openPrivateChat: {
+                chat: false,
+                user: null,
+                msg: [],
+                room: null,
+                closed: false
+            }
+        }
+    },
     methods: {
         sendMessage(msg) {
             // send new public message
@@ -79,7 +107,18 @@ export default {
                 message: msg
             })
         },
-        // REST OF METHODS: onChangeRoom, openChat, closePrivateChat, logout
+        onChangeRoom() {
+
+        },
+        openChat() {
+
+        },
+        closePrivateChat() {
+
+        },
+        logout() {
+
+        }
     }
 }
 </script>
