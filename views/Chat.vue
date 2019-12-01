@@ -54,9 +54,20 @@
 </template>
 
 <script>
+import UserList from './../components/UserList'
+import ChatArea from './../components/ChatArea'
+import MessageArea from './../components/MessageArea'
+import ChatDialog from './../components/ChatDialog'
+import { url, STORE_ACTIONS, WS_EVENTS } from './../utils/config'
+
 export default {
     name: 'chat',
-    components: { UserList, ChatArea, MessageArea, ChatDialog },
+    components: { 
+        UserList,
+        ChatArea,
+        MessageArea,
+        ChatDialog
+    },
     // event listeners for server
     sockets: {
         newMessage: function({ message, username }) {
@@ -66,19 +77,70 @@ export default {
             this.messages.push({ msg, isMe })
         },
         newUser: function({ users, username }) {
+            const isMe = this.$store.state.username === username
+            if(!isMe) {
+                if(users.length > this.users.length) {
+                    this.messages.push({ join: true, msg: `${username} has joined the room` })
+                } else if (users.length < this.users.length) {
+                    this.messages.push({ join: true, msg: `${username} has left the room` })
+                }
+            }
 
+            this.users.length = 0
+            this.users = users
         },
         privateChat: function({ username, to }) {
-
+            const isForMe = this.$store.state.username === to
+            if(isForMe && !this.openPrivateChat.chat) {
+                // join private room
+                this.$socket.emit(WS_EVENTS.joinPrivateRoom, {
+                    to: this.$store.state.username,
+                    room: null,
+                    username
+                })
+            }
         },
         privateMessage: function({ privateMessage, to, from, room }) {
+            console.log(`New private message from ${from} in room ${room}`)
 
+            const isObj = typeof privateMessage === 'object'
+            const isForMe = this.$store.state.username === to
+            const isFromMe = this.$store.state.username === from
+
+            if(isObj && isFromMe) return false
+
+            // open private chat with info
+            if(!this.openPrivateChat.chat) {
+                this.openPrivateChat = {
+                    ...this.openPrivateChat,
+                    chat: true,
+                    user: from,
+                    room: room
+                }
+            }
+
+            const msgObj = {
+                msg: isObj ? privateMessage.msg : privateMessage,
+                isMe: !isForMe
+            }
+            this.openPrivateChat.msg.push(msgObj)
         },
         leavePrivateRoom: function({ privateMessage, from }) {
-
+            if((from === this.openPrivateChat.user || from === this.$store.state.username) && this.openPrivateChat.chat) {
+                this.openPrivateChat.msg.push({ msg: privateMessage })
+                this.openPrivateChat = { ...this.openPrivateChat, closed: true }
+            }
         },
         leaveChat: function({ users, username}) {
+            this.messages.push({ join: true, msg: `${username} has left the room`})
+            this.users.length = 0
+            this.users = users
 
+            if(username === this.$store.state.username) {
+                this.$store.dispatch(STORE_ACTIONS.leaveChat).then(() => {
+                    this.$router.push("/")
+                })
+            }
         }
     },
     beforeCreate: function() {
@@ -107,18 +169,59 @@ export default {
                 message: msg
             })
         },
-        onChangeRoom() {
-
+        onChangeRoom(val) {
+            if(this.$store.state.room !== val) {
+                this.$socket.emit(WS_EVENTS.leaveRoom, this.$store.state)
+                this.$store.dispatch(STORE_ACTIONS.changeRoom, val)
+                this.message.length = 0
+                this.$socket.emit(WS_EVENTS.joinRoom, this.$store.state)
+            }
         },
-        openChat() {
-
+        openChat(user) {
+            this.openPrivateChat = {
+                ...this.openPrivateChat,
+                chat: true,
+                user: user,
+                room: user // room is username you are chatting with
+            }
         },
         closePrivateChat() {
+            // leavePrivateRoom emit
+            this.$socket.emit(WS_EVENTS.leavePrivateRoom, {
+                room: this.$store.state.room,
+                to: this.openPrivateChat.room,
+                from: this.$store.state.username
+            })
 
+            this.openPrivateChat = {
+                ...this.openPrivateChat,
+                chat: false,
+                closed: false,
+                user: null,
+                msg: [],
+                room: null
+            }
         },
-        logout() {
-
+        async logout() {
+            try {
+                let response = await this.$http.post(`http://${url}/auth/logout`, {
+                    username: this.$store.state.username
+                })
+                if(response.body.code === 200) {
+                    this.$socket.emit(WS_EVENTS.leaveChat, {
+                        room: this.$store.state.room,
+                        username: this.$store.state.username
+                    })
+                }
+            } catch (error) {
+                console.log(error)
+            }
         }
     }
 }
 </script>
+
+<style lang="scss">
+@import "./../styles/variables"
+
+</style>
